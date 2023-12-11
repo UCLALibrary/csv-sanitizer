@@ -2,6 +2,15 @@ import argparse
 import csv
 
 
+def is_non_empty_string(input_string) -> bool:
+
+    # Strip white spaces from the input string
+    trimmed_string = input_string.strip()
+
+    # Check if the length of the trimmed string is greater than 0
+    return len(trimmed_string) > 0
+
+
 class Validator:
     def __init__(self, path):
         with open(path, "r", newline="") as csvfile:
