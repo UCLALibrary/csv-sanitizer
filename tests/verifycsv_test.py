@@ -4,7 +4,6 @@ import unittest
 
 
 class TestCSV(unittest.TestCase):
-
     # Fixture for common test data
     def setUp(self):
         self.common_data = {

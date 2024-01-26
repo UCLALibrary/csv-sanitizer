@@ -63,7 +63,6 @@ class Validator:
 
     @classmethod
     def is_csv(self, file_ext, row, field, header, errors):
-
         # Check file extension is .csv
         if file_ext.lower() != ".csv":
             errors.append(
