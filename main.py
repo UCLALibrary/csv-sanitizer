@@ -1,5 +1,7 @@
 import argparse
 import csv
+from datetime import datetime
+import re
 import os
 
 
@@ -12,10 +14,43 @@ def is_non_empty_string(input_string) -> bool:
     return len(trimmed_string) > 0
 
 
+def datetime_valid(dt_str):
+    # case date range
+    if "/" in dt_str:
+        dates = dt_str.split("/")
+        # There should be exactly two dates
+        if len(dates) != 2:
+            return False
+
+        # Validate each date
+        for date in dates:
+            try:
+                datetime.fromisoformat(date)
+            except ValueError:
+                return False
+
+        return True
+
+    # case single date
+    else:
+        # ISO 8601 duration regex pattern
+        pattern = r"^P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$"
+        match = re.match(pattern, dt_str)
+        if match is not None:
+            return True
+
+        try:
+            datetime.fromisoformat(dt_str)
+        except:
+            return False
+        return True
+
+
 class Validator:
     def __init__(self, path):
         _, self.file_extension = os.path.splitext(path)
         with open(path, "r", newline="") as csvfile:
+
             reader = csv.DictReader(csvfile)
             self.rows = [row for row in reader]
             self.fields = reader.fieldnames
