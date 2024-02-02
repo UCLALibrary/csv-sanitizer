@@ -25,9 +25,6 @@ class TestDatetimeValid(unittest.TestCase):
     def test_invalid_date_range(self):
         self.assertFalse(datetime_valid("2021-01-01/2021-13-31"))  # Invalid second date
 
-    def test_valid_duration(self):
-        self.assertTrue(datetime_valid("P3Y6M4DT12H30M5S"))  # Valid duration
-
     def test_invalid_format(self):
         self.assertFalse(datetime_valid("2024/01/18"))  # Non-ISO format
 

@@ -33,12 +33,6 @@ def datetime_valid(dt_str):
 
     # case single date
     else:
-        # ISO 8601 duration regex pattern
-        pattern = r"^P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$"
-        match = re.match(pattern, dt_str)
-        if match is not None:
-            return True
-
         try:
             datetime.fromisoformat(dt_str)
         except:
