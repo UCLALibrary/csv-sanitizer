@@ -17,6 +17,10 @@ class TestFileExists(unittest.TestCase):
     def test_invalid_path(self):
         self.assertFalse(file_exists(self.rows[2], 0, []))
 
+    # File path exist but is not readable
+    def test_not_readable(self):
+        self.assertFalse(file_exists(self.rows[1], 0, []))
+
     # File path exist but is zero bytes
     def test_zero_bytes(self):
         self.assertFalse(file_exists(self.rows[3], 0, []))
