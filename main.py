@@ -3,6 +3,7 @@ import csv
 from datetime import datetime
 import re
 import os
+from PIL import Image
 
 
 def is_non_empty_string(input_string) -> bool:
@@ -38,6 +39,28 @@ def datetime_valid(dt_str):
         except:
             return False
         return True
+
+
+def is_valid_tiff(path):
+    # Check if the file exists
+    if not os.path.exists(path):
+        return False
+
+    # Check if the extension is a valid TIFF extension
+    if not path.lower().endswith((".tif", ".tiff")):
+        return False
+
+    # Attempt to open the file to check for integrity issues
+    try:
+        with Image.open(path) as img:
+            # Verifies the integrity of the file
+            img.verify()
+    except IOError:
+        # If an IOError is caught it indicates an issue with opening the file
+        return False
+
+    # If all checks pass, the file is considered valid
+    return True
 
 
 class Validator:
