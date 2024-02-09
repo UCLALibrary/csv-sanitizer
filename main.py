@@ -3,6 +3,8 @@ import csv
 from datetime import datetime
 import re
 import os
+from pathlib import Path
+from os import access, R_OK
 
 
 def is_non_empty_string(input_string) -> bool:
@@ -44,6 +46,29 @@ def datetime_valid(dt_str):
         except:
             return False
         return True
+
+
+def file_exists(row, rowNum, errors):
+    file_name = row["File Name"]
+
+    file_path = Path(file_name)
+
+    # Path/File exists
+    if not file_path.exists() and not file_path.is_file():
+        errors.append(f"File {file_path} does not exist ({rowNum})")
+        return False
+
+    # Check if file is readable
+    if not access(file_path, R_OK):
+        errors.append(f"File {file_path} is not readable ({rowNum})")
+        return False
+
+    # Check size of file
+    if file_path.stat().st_size == 0:
+        errors.append(f"File {file_path} is zero bytes ({rowNum})")
+        return False
+
+    return True
 
 
 class Validator:
@@ -133,6 +158,10 @@ class Validator:
         Validator.is_csv(
             self.file_extension, self.rows, self.fields, self.validheaders, errors
         )
+
+        for rowNum, row in enumerate(self.rows, 1):
+            file_exists(row, rowNum, errors)
+
         if errors:
             print("Your file contains these errors: ", errors)
         else:
