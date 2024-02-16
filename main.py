@@ -4,6 +4,8 @@ from datetime import datetime
 import re
 import os
 from PIL import Image
+from pathlib import Path
+from os import access, R_OK
 
 
 def is_non_empty_string(input_string) -> bool:
@@ -78,6 +80,29 @@ def is_valid_tiff(row, rowNum, errors):
         return
 
     # If all checks pass, the file is considered valid
+    return True
+
+
+def file_exists(row, rowNum, errors):
+    file_name = row["File Name"]
+
+    file_path = Path(file_name)
+
+    # Path/File exists
+    if not file_path.exists() and not file_path.is_file():
+        errors.append(f"File {file_path} does not exist ({rowNum})")
+        return False
+
+    # Check if file is readable
+    if not access(file_path, R_OK):
+        errors.append(f"File {file_path} is not readable ({rowNum})")
+        return False
+
+    # Check size of file
+    if file_path.stat().st_size == 0:
+        errors.append(f"File {file_path} is zero bytes ({rowNum})")
+        return False
+
     return True
 
 
@@ -172,6 +197,7 @@ class Validator:
         for rowNum, row in enumerate(self.rows, 1):
             is_valid_datetime(row, rowNum, errors)
             is_valid_tiff(row, rowNum, errors)
+            file_exists(row, rowNum, errors)
 
         if errors:
             print("Your file contains these errors: ", errors)
