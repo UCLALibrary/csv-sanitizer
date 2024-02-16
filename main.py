@@ -157,20 +157,36 @@ class Validator:
         if found_item == 0:
             errors.append("No valid header row exists in file")
 
+    @classmethod
+    def validate_files(self, rows: list, errors: list):
+        for rowNum, row in enumerate(self.rows, 1):
+            file_exists(row, rowNum, errors)
+
+    @classmethod
+    def create_error_report(self, errors: list):
+        # TODO: Given a list of errors, create a human readable report
+        # Some nice to haves, total number of errors, type, and line number
+        if errors:
+            print("Your file contains these errors: ", errors)
+        else:
+            print("There are no errors in your file!")
+
     # Run methods and return a list of errors that the csv has
     def validate(self):
         errors = []
         Validator.is_csv(
             self.file_extension, self.rows, self.fields, self.validheaders, errors
         )
+        Validator.validate_files(self.rows, errors)
 
-        for rowNum, row in enumerate(self.rows, 1):
-            file_exists(row, rowNum, errors)
+        # Add each Validator call here:
+        #
+        # Examples:
+        # Validator.check_for_blanks(...)
+        # Validator.check_for_tiff_errros(...)
 
-        if errors:
-            print("Your file contains these errors: ", errors)
-        else:
-            print("There are no errors in your file!")
+        # Once all errors are determined, return error report
+        Validator.create_error_report(errors)
 
 
 def main():
@@ -188,7 +204,7 @@ def main():
 
     # create instance of validator
     validator = Validator(args.csv_path, args.stub)
-    # validator.validate()
+    validator.validate()
 
 
 if __name__ == "__main__":
