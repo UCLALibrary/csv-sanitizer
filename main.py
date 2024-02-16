@@ -15,35 +15,51 @@ def is_non_empty_string(input_string) -> bool:
     return len(trimmed_string) > 0
 
 
-def datetime_valid(dt_str):
+# Helper function to validate a single date
+def valid_single_date(dt_str):
+    try:
+        datetime.fromisoformat(dt_str)  # try built in iso verification
+    except:
+        # Handle reduced precision dates
+        if re.match(r"^\d{4}-\d{2}$", dt_str):  # YYYY-MM format
+            return True
+        elif re.match(r"^\d{4}$", dt_str):  # YYYY format
+            return True
+        else:
+            return False
+
+
+# Add to errors list if date is not valid
+def is_valid_datetime(row, rowNum, errors):
+    dt_str = row["Date.normalized"]
     # case date range
     if "/" in dt_str:
         dates = dt_str.split("/")
         # There should be exactly two dates
         if len(dates) != 2:
-            return False
+            errors.append(f"Invalid date format in row {rowNum}")
+            return
 
         # Validate each date
         for date in dates:
-            try:
-                datetime.fromisoformat(date)
-            except ValueError:
-                return False
-
-        return True
+            if valid_single_date(date) == False:
+                errors.append(f"Invalid date format in row {rowNum}")
+                return
 
     # case single date
     else:
-        try:
-            datetime.fromisoformat(dt_str)
-        except:
-            return False
-        return True
+        if valid_single_date(dt_str) == False:
+            errors.append(f"Invalid date format in row {rowNum}")
+            return
+
+    return True
 
 
-def is_valid_tiff(path):
+def is_valid_tiff(row, rowNum, errors):
+    path = row["File Name"]
     # Check if the file exists
     if not os.path.exists(path):
+        # errors.append
         return False
 
     # Check if the extension is a valid TIFF extension
@@ -150,6 +166,10 @@ class Validator:
         Validator.is_csv(
             self.file_extension, self.rows, self.fields, self.validheaders, errors
         )
+
+        for rowNum, row in enumerate(self.rows, 1):
+            is_valid_datetime(row, rowNum, errors)
+
         if errors:
             print("Your file contains these errors: ", errors)
         else:

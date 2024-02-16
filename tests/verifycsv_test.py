@@ -1,6 +1,6 @@
 import unittest
 from main import Validator
-from main import datetime_valid
+from main import is_valid_datetime
 from main import is_non_empty_string
 
 
@@ -192,20 +192,63 @@ class TestCSV(unittest.TestCase):
 
 
 class TestDatetimeValid(unittest.TestCase):
+
+    # Helper wrapper function to make setting up tests easier
+    def datetime_valid_wrapper(self, date_str):
+        row = {"Date.normalized": date_str}
+        errors = []
+        is_valid_datetime(row, 0, errors)
+        return errors
+
+    # individual tests below
     def test_single_valid_date(self):
-        self.assertTrue(datetime_valid("2024-01-18"))
+        errors = self.datetime_valid_wrapper("2024-05-18")
+        self.assertEqual(len(errors), 0)
 
     def test_single_invalid_date(self):
-        self.assertFalse(datetime_valid("2024-13-18"))  # Invalid month
+        errors = self.datetime_valid_wrapper("2024-5-18")  # month is only one digit
+        self.assertNotEqual(len(errors), 0)
+
+    def test_year(self):
+        errors = self.datetime_valid_wrapper("1976")
+        self.assertEqual(len(errors), 0)
+
+    def test_year_range(self):
+        errors = self.datetime_valid_wrapper(
+            "1976-1988"
+        )  # this should not be allowed in the date.normalized column
+        self.assertNotEqual(len(errors), 0)
+
+    def test_year_range_slash(self):
+        errors = self.datetime_valid_wrapper("1976/1988")  # date range of only years
+        self.assertEqual(len(errors), 0)
+
+    def test_incorrect_year(self):
+        errors = self.datetime_valid_wrapper("19761")  # Invalid year
+        self.assertNotEqual(len(errors), 0)
+
+    def test_year_month(self):
+        errors = self.datetime_valid_wrapper("2004-05")
+        self.assertEqual(len(errors), 0)
+
+    def test_single_invalid_date(self):
+        errors = self.datetime_valid_wrapper("2024-13-18")  # Invalid month
+        self.assertNotEqual(len(errors), 0)
 
     def test_valid_date_range(self):
-        self.assertTrue(datetime_valid("2021-01-01/2021-12-31"))
+        errors = self.datetime_valid_wrapper("2021-01-01/2021-12-31")
+        self.assertEqual(len(errors), 0)
 
     def test_invalid_date_range(self):
-        self.assertFalse(datetime_valid("2021-01-01/2021-13-31"))  # Invalid second date
+        errors = self.datetime_valid_wrapper(
+            "2021-01-01/2021-13-31"
+        )  # Invalid second date
+        self.assertNotEqual(len(errors), 0)
 
     def test_invalid_format(self):
-        self.assertFalse(datetime_valid("2024/01/18"))  # Non-ISO format
+        errors = self.datetime_valid_wrapper("2024/01/18")  # Non-ISO format
+        self.assertNotEqual(len(errors), 0)
 
     def test_empty_string(self):
-        self.assertFalse(datetime_valid(""))  # Empty string
+        errors = self.datetime_valid_wrapper("")  # Empty string
+        self.assertNotEqual(len(errors), 0)
