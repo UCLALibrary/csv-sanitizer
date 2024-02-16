@@ -72,7 +72,12 @@ def file_exists(row, rowNum, errors):
 
 
 class Validator:
-    def __init__(self, path):
+    def __init__(self, path: str, dir_stub: str = None):
+
+        # Optional directory stub to file location (e.g. /root/to/file-folder/ )
+        # If dir_stub is None set to empty string
+        self.dir_stub = dir_stub if dir_stub else ""
+
         _, self.file_extension = os.path.splitext(path)
         with open(path, "r", newline="") as csvfile:
 
@@ -172,11 +177,18 @@ def main():
     # read csv path from command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("csv_path", help="Path to the csv file")
+    parser.add_argument(
+        "-s",
+        "--stub",
+        type=str,
+        nargs="?",
+        help="The directory stub to append to file paths, e.g. /path/to/masters/",
+    )
     args = parser.parse_args()
 
     # create instance of validator
-    validator = Validator(args.csv_path)
-    validator.validate()
+    validator = Validator(args.csv_path, args.stub)
+    # validator.validate()
 
 
 if __name__ == "__main__":
