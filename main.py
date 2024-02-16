@@ -59,12 +59,13 @@ def is_valid_tiff(row, rowNum, errors):
     path = row["File Name"]
     # Check if the file exists
     if not os.path.exists(path):
-        # errors.append
-        return False
+        errors.append(f"File does not exist at specified path in row {rowNum}")
+        return
 
     # Check if the extension is a valid TIFF extension
     if not path.lower().endswith((".tif", ".tiff")):
-        return False
+        errors.append(f"Invalid file extension (TIFF required) in row {rowNum}")
+        return
 
     # Attempt to open the file to check for integrity issues
     try:
@@ -73,7 +74,8 @@ def is_valid_tiff(row, rowNum, errors):
             img.verify()
     except IOError:
         # If an IOError is caught it indicates an issue with opening the file
-        return False
+        errors.append(f"TIFF file has integrity issues in row {rowNum}")
+        return
 
     # If all checks pass, the file is considered valid
     return True
@@ -169,6 +171,7 @@ class Validator:
 
         for rowNum, row in enumerate(self.rows, 1):
             is_valid_datetime(row, rowNum, errors)
+            is_valid_tiff(row, rowNum, errors)
 
         if errors:
             print("Your file contains these errors: ", errors)
