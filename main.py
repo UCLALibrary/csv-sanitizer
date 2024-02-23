@@ -33,40 +33,44 @@ def valid_single_date(dt_str):
 
 # Add to errors list if date is not valid
 def is_valid_datetime(row, rowNum, errors):
-    dt_str = row["Date.normalized"]
+    header = "Date.normalized"
+    dt_str = row[header]
+
     # case date range
     if "/" in dt_str:
         dates = dt_str.split("/")
         # There should be exactly two dates
         if len(dates) != 2:
-            errors.append(f"Invalid date format in row {rowNum}")
+            errors.append([rowNum, header, f"Invalid date format"])
             return
 
         # Validate each date
         for date in dates:
             if valid_single_date(date) == False:
-                errors.append(f"Invalid date format in row {rowNum}")
+                errors.append([rowNum, header, f"Invalid date format"])
                 return
 
     # case single date
     else:
         if valid_single_date(dt_str) == False:
-            errors.append(f"Invalid date format in row {rowNum}")
+            errors.append([rowNum, header, f"Invalid date format"])
             return
 
     return True
 
 
 def is_valid_tiff(row, rowNum, errors):
-    path = row["File Name"]
+    header = "File Name"
+    path = row[header]
+
     # Check if the file exists
     if not os.path.exists(path):
-        errors.append(f"File does not exist at specified path in row {rowNum}")
+        errors.append([rowNum, header, f"File does not exist at specified path"])
         return
 
     # Check if the extension is a valid TIFF extension
     if not path.lower().endswith((".tif", ".tiff")):
-        errors.append(f"Invalid file extension (TIFF required) in row {rowNum}")
+        errors.append([rowNum, header, f"Invalid file extension (TIFF required)"])
         return
 
     # Attempt to open the file to check for integrity issues
@@ -76,7 +80,7 @@ def is_valid_tiff(row, rowNum, errors):
             img.verify()
     except IOError:
         # If an IOError is caught it indicates an issue with opening the file
-        errors.append(f"TIFF file has integrity issues in row {rowNum}")
+        errors.append([rowNum, header, f"TIFF file has integrity issues"])
         return
 
     # If all checks pass, the file is considered valid
@@ -84,23 +88,24 @@ def is_valid_tiff(row, rowNum, errors):
 
 
 def file_exists(row, rowNum, errors):
-    file_name = row["File Name"]
+    header = "File Name"
+    file_name = row[header]
 
     file_path = Path(file_name)
 
     # Path/File exists
     if not file_path.exists() and not file_path.is_file():
-        errors.append([rowNum, "File Name", f"File {file_path} does not exist"])
+        errors.append([rowNum, header, f"File {file_path} does not exist"])
         return False
 
     # Check if file is readable
     if not access(file_path, R_OK):
-        errors.append([rowNum, "File Name", f"File {file_path} is not readable"])
+        errors.append([rowNum, header, f"File {file_path} is not readable"])
         return False
 
     # Check size of file
     if file_path.stat().st_size == 0:
-        errors.append([rowNum, "File Name", f"File {file_path} is zero bytes"])
+        errors.append([rowNum, header, f"File {file_path} is zero bytes"])
         return False
 
     return True
@@ -200,28 +205,27 @@ class Validator:
         if errors:
             print(f"{len(errors)} errors found:")
             for error in errors:
-                print(f"Line {error[0]+1}:  {error[1]}.  {error[2]}")
+                print(f"Line {error[0]}:  {error[1]}\t{error[2]}")
 
         else:
             print("There are no errors in your file!")
 
     # Run methods and return a list of errors that the csv has
     def validate(self):
-        # List of errors, an error is line #, field name, and message
+        # List of errors. an error is [Line #, Field Name, Error mesage]
         errors = []
-        Validator.is_csv(
+
+        # Run tests if valid csv
+        if Validator.is_csv(
             self.file_extension, self.rows, self.fields, self.validheaders, errors
-        )
+        ):
+            # Validator calls
+            for rowNum, row in enumerate(self.rows, 1):
+                is_valid_datetime(row, rowNum, errors)
+                is_valid_tiff(row, rowNum, errors)
+                file_exists(row, rowNum, errors)
 
-        for rowNum, row in enumerate(self.rows, 1):
-            is_valid_datetime(row, rowNum, errors)
-            is_valid_tiff(row, rowNum, errors)
-            file_exists(row, rowNum, errors)
-
-        if errors:
-            print("Your file contains these errors: ", errors)
-        else:
-            print("There are no errors in your file!")
+        Validator.create_error_report(errors)
 
 
 def main():
