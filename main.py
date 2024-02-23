@@ -3,6 +3,7 @@ import csv
 from datetime import datetime
 import re
 import os
+from PIL import Image
 from pathlib import Path
 from os import access, R_OK
 
@@ -16,36 +17,70 @@ def is_non_empty_string(input_string) -> bool:
     return len(trimmed_string) > 0
 
 
-def datetime_valid(dt_str):
+# Helper function to validate a single date
+def valid_single_date(dt_str):
+    try:
+        datetime.fromisoformat(dt_str)  # try built in iso verification
+    except:
+        # Handle reduced precision dates
+        if re.match(r"^\d{4}-\d{2}$", dt_str):  # YYYY-MM format
+            return True
+        elif re.match(r"^\d{4}$", dt_str):  # YYYY format
+            return True
+        else:
+            return False
+
+
+# Add to errors list if date is not valid
+def is_valid_datetime(row, rowNum, errors):
+    dt_str = row["Date.normalized"]
     # case date range
     if "/" in dt_str:
         dates = dt_str.split("/")
         # There should be exactly two dates
         if len(dates) != 2:
-            return False
+            errors.append(f"Invalid date format in row {rowNum}")
+            return
 
         # Validate each date
         for date in dates:
-            try:
-                datetime.fromisoformat(date)
-            except ValueError:
-                return False
-
-        return True
+            if valid_single_date(date) == False:
+                errors.append(f"Invalid date format in row {rowNum}")
+                return
 
     # case single date
     else:
-        # ISO 8601 duration regex pattern
-        pattern = r"^P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$"
-        match = re.match(pattern, dt_str)
-        if match is not None:
-            return True
+        if valid_single_date(dt_str) == False:
+            errors.append(f"Invalid date format in row {rowNum}")
+            return
 
-        try:
-            datetime.fromisoformat(dt_str)
-        except:
-            return False
-        return True
+    return True
+
+
+def is_valid_tiff(row, rowNum, errors):
+    path = row["File Name"]
+    # Check if the file exists
+    if not os.path.exists(path):
+        errors.append(f"File does not exist at specified path in row {rowNum}")
+        return
+
+    # Check if the extension is a valid TIFF extension
+    if not path.lower().endswith((".tif", ".tiff")):
+        errors.append(f"Invalid file extension (TIFF required) in row {rowNum}")
+        return
+
+    # Attempt to open the file to check for integrity issues
+    try:
+        with Image.open(path) as img:
+            # Verifies the integrity of the file
+            img.verify()
+    except IOError:
+        # If an IOError is caught it indicates an issue with opening the file
+        errors.append(f"TIFF file has integrity issues in row {rowNum}")
+        return
+
+    # If all checks pass, the file is considered valid
+    return True
 
 
 def file_exists(row, rowNum, errors):
@@ -174,21 +209,19 @@ class Validator:
     def validate(self):
         # List of errors, an error is line #, field name, and message
         errors = []
-
-        # If is a valid csv, run tests
-        if Validator.is_csv(
+        Validator.is_csv(
             self.file_extension, self.rows, self.fields, self.validheaders, errors
-        ):
-            # Add each Validator call here:
+        )
 
-            # Examples:
-            # Validator.check_for_blanks(...)
-            # Validator.check_for_tiff_errros(...)
+        for rowNum, row in enumerate(self.rows, 1):
+            is_valid_datetime(row, rowNum, errors)
+            is_valid_tiff(row, rowNum, errors)
+            file_exists(row, rowNum, errors)
 
-            for rowNum, row in enumerate(self.rows, 1):
-                file_exists(row, rowNum, errors)
-
-        Validator.create_error_report(errors)
+        if errors:
+            print("Your file contains these errors: ", errors)
+        else:
+            print("There are no errors in your file!")
 
 
 def main():
