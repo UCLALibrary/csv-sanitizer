@@ -6,6 +6,7 @@ import os
 from PIL import Image
 from pathlib import Path
 from os import access, R_OK
+from config import Config
 
 
 def is_non_empty_string(input_string) -> bool:
@@ -114,56 +115,7 @@ class Validator:
             reader = csv.DictReader(csvfile)
             self.rows = [row for row in reader]
             self.fields = reader.fieldnames
-            self.validheaders = [
-                "item ark",
-                "parent ark",
-                "item status id",
-                "item status",
-                "object type",
-                "file name",
-                "item sequence",
-                "duplicate",
-                "delete in title",
-                "thumbnail",
-                "viewinghint",
-                "text direction",
-                "visibility",
-                "iiif range",
-                "type.typeofresource",
-                "type.genre",
-                "rights.copyrightstatus",
-                "rights.statementlocal",
-                "rights.servicescontact",
-                "language",
-                "coverage.geographic",
-                "coverage.temporal",
-                "subject",
-                "alt id.local",
-                "title",
-                "name.creator",
-                "alttitle.uniform",
-                "relation.ispartof",
-                "summary",
-                "description.note",
-                "date.creation",
-                "date.normalized",
-                "publisher.placeoforigin",
-                "publisher.publishername",
-                "name.subject",
-                "name.photographer",
-                "name.repository",
-                "finding aid url",
-                "opac url",
-                "bucketeer state",
-                "iiif access url",
-                "iiif manifest url",
-                "media.width",
-                "media.height",
-                "media.duration",
-                "media.format",
-                "waveform",
-                "license",
-            ]
+            self.valid_headers = Config.valid_headers
 
     @classmethod
     def is_csv(self, file_ext, row, field, header, errors):
@@ -191,7 +143,7 @@ class Validator:
     def validate(self):
         errors = []
         Validator.is_csv(
-            self.file_extension, self.rows, self.fields, self.validheaders, errors
+            self.file_extension, self.rows, self.fields, self.valid_headers, errors
         )
 
         for rowNum, row in enumerate(self.rows, 1):
