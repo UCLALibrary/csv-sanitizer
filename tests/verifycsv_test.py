@@ -1,6 +1,17 @@
-from main import Validator
-import pytest
 import unittest
+from main import Validator
+from main import is_valid_datetime
+from main import is_valid_tiff
+from main import is_non_empty_string
+
+
+def test_nonempty_string():
+    empty_string = "   "
+    normal_string = " hello   "
+    newline_string = "\n   "
+    assert is_non_empty_string(empty_string) == False
+    assert is_non_empty_string(normal_string) == True
+    assert is_non_empty_string(newline_string) == False
 
 
 class TestCSV(unittest.TestCase):
@@ -179,3 +190,88 @@ class TestCSV(unittest.TestCase):
             errors,
         )
         self.assertEqual(errors, ["File is empty"])
+
+
+class TestDatetimeValid(unittest.TestCase):
+
+    # Helper wrapper function to make setting up tests easier
+    def datetime_valid_wrapper(self, date_str):
+        row = {"Date.normalized": date_str}
+        errors = []
+        is_valid_datetime(row, 0, errors)
+        return errors
+
+    # these test valid dates
+    def test_single_valid_date(self):
+        errors = self.datetime_valid_wrapper("2024-05-18")  # standard format
+        self.assertEqual(len(errors), 0)
+
+    def test_year(self):
+        errors = self.datetime_valid_wrapper("1976")  # single year
+        self.assertEqual(len(errors), 0)
+
+    def test_year_range_slash(self):
+        errors = self.datetime_valid_wrapper("1976/1988")  # date range of only years
+        self.assertEqual(len(errors), 0)
+
+    def test_year_month(self):
+        errors = self.datetime_valid_wrapper("2004-05")  # reduced form date
+        self.assertEqual(len(errors), 0)
+
+    def test_valid_date_range(self):
+        errors = self.datetime_valid_wrapper("2021-01-01/2021-12-31")  # full date range
+        self.assertEqual(len(errors), 0)
+
+    # these test invalid dates
+    def test_year_range(self):
+        errors = self.datetime_valid_wrapper(
+            "1976-1988"
+        )  # using "-" to separate date ranges, this should not be allowed in the date.normalized column
+        self.assertNotEqual(len(errors), 0)
+
+    def test_single_invalid_date(self):
+        errors = self.datetime_valid_wrapper("2024-5-18")  # month is only one digit
+        self.assertNotEqual(len(errors), 0)
+
+    def test_incorrect_year(self):
+        errors = self.datetime_valid_wrapper("19761")  # Invalid year
+        self.assertNotEqual(len(errors), 0)
+
+    def test_single_invalid_date(self):
+        errors = self.datetime_valid_wrapper("2024-13-18")  # Invalid month
+        self.assertNotEqual(len(errors), 0)
+
+    def test_invalid_date_range(self):
+        errors = self.datetime_valid_wrapper(
+            "2021-01-01/2021-13-31"
+        )  # Invalid second date
+        self.assertNotEqual(len(errors), 0)
+
+    def test_invalid_format(self):
+        errors = self.datetime_valid_wrapper("2024/01/18")  # Non-ISO format
+        self.assertNotEqual(len(errors), 0)
+
+    def test_empty_string(self):
+        errors = self.datetime_valid_wrapper("")  # Empty string
+        self.assertNotEqual(len(errors), 0)
+
+
+class TestTIFFValid(unittest.TestCase):
+
+    # Helper wrapper function to make setting up tests easier
+    def tiff_valid_wrapper(self, path):
+        row = {"File Name": path}
+        errors = []
+        is_valid_tiff(row, 0, errors)
+        return errors
+
+    # individual tests
+    def test_local_tiff(self):
+        errors = self.tiff_valid_wrapper("example.tiff")  # local storage of tiff file
+        self.assertEqual(len(errors), 0)
+
+    def test_nonexistent_tiff(self):
+        errors = self.tiff_valid_wrapper(
+            "thisdoesnotexist.tiff"
+        )  # nonexistent local path
+        self.assertNotEqual(len(errors), 0)
