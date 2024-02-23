@@ -55,17 +55,17 @@ def file_exists(row, rowNum, errors):
 
     # Path/File exists
     if not file_path.exists() and not file_path.is_file():
-        errors.append(f"File {file_path} does not exist ({rowNum})")
+        errors.append([rowNum, "File Name", f"File {file_path} does not exist"])
         return False
 
     # Check if file is readable
     if not access(file_path, R_OK):
-        errors.append(f"File {file_path} is not readable ({rowNum})")
+        errors.append([rowNum, "File Name", f"File {file_path} is not readable"])
         return False
 
     # Check size of file
     if file_path.stat().st_size == 0:
-        errors.append(f"File {file_path} is zero bytes ({rowNum})")
+        errors.append([rowNum, "File Name", f"File {file_path} is zero bytes"])
         return False
 
     return True
@@ -135,13 +135,18 @@ class Validator:
         # Check file extension is .csv
         if file_ext.lower() != ".csv":
             errors.append(
-                f"Incorrect file extension ({file_ext}), please specify a .csv"
+                [
+                    0,
+                    "File",
+                    f"Incorrect file extension ({file_ext}), please specify a .csv",
+                ]
             )
+            return False
 
         # Check if the file is empty
         if not row:
-            errors.append("File is empty")
-            return 0
+            errors.append([0, "File", "File is empty"])
+            return False
 
         # Check that a header row exists with valid header names
         found_item = 0
@@ -150,22 +155,40 @@ class Validator:
                 found_item += 1
 
         if found_item == 0:
-            errors.append("No valid header row exists in file")
+            errors.append([0, "Field Names", "No valid header row exists in file"])
+            return False
+
+        return True
+
+    @classmethod
+    def create_error_report(self, errors: list):
+        if errors:
+            print(f"{len(errors)} errors found:")
+            for error in errors:
+                print(f"Line {error[0]+1}:  {error[1]}.  {error[2]}")
+
+        else:
+            print("There are no errors in your file!")
 
     # Run methods and return a list of errors that the csv has
     def validate(self):
+        # List of errors, an error is line #, field name, and message
         errors = []
-        Validator.is_csv(
+
+        # If is a valid csv, run tests
+        if Validator.is_csv(
             self.file_extension, self.rows, self.fields, self.validheaders, errors
-        )
+        ):
+            # Add each Validator call here:
 
-        for rowNum, row in enumerate(self.rows, 1):
-            file_exists(row, rowNum, errors)
+            # Examples:
+            # Validator.check_for_blanks(...)
+            # Validator.check_for_tiff_errros(...)
 
-        if errors:
-            print("Your file contains these errors: ", errors)
-        else:
-            print("There are no errors in your file!")
+            for rowNum, row in enumerate(self.rows, 1):
+                file_exists(row, rowNum, errors)
+
+        Validator.create_error_report(errors)
 
 
 def main():
